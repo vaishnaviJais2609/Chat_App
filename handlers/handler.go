@@ -3,6 +3,7 @@ package handlers
 
 import (
 	"log"
+	"net/http"
 
 	"chatapp/config"
 	"chatapp/ws"

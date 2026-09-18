@@ -1,112 +1,70 @@
 package ws
 
-import (
-	"encoding/json"
-	"log"
-	"time"
-)
-
 type Message struct {
-	From      string `json:"from"`
-	Content   string `json:"content"`
-	Timestamp int64  `json:"timestamp"`
-	Type      string `json:"type"`
+	User    string `json:"user"`
+	Message string `json:"message"`
 }
-type Hub struct {
-	clients map[string]*Client
 
-	register   chan *Client
+type Hub struct {
+	clients    map[*Client]bool
+	register   chan RegisterRequest
 	unregister chan *Client
 	broadcast  chan Message
-
-	AllowedUsers map[string]bool
 }
 
-func NewHub(userA, userB string) *Hub {
+type RegisterRequest struct {
+	client *Client
+	result chan bool
+}
+
+func NewHub() *Hub {
 	return &Hub{
-		clients:    make(map[string]*Client),
-		register:   make(chan *Client),
+		clients:    make(map[*Client]bool),
+		register:   make(chan RegisterRequest),
 		unregister: make(chan *Client),
 		broadcast:  make(chan Message),
-		AllowedUsers: map[string]bool{
-			userA: true,
-			userB: true,
-		},
 	}
 }
+
 func (h *Hub) Run() {
 	for {
 		select {
-		case client := <-h.register:
-			h.clients[client.Username] = client
-			log.Printf("client connected: %s (total: %d)", client.Username, len(h.clients))
-			h.notifySystem(client.Username + " has joined the chat")
-
-		case client := <-h.unregister:
-			if _, ok := h.clients[client.Username]; ok {
-				delete(h.clients, client.Username)
-				close(client.Send)
-				log.Printf("client disconnected: %s (total: %d)", client.Username, len(h.clients))
-				h.notifySystem(client.Username + " has left the chat")
+		case request := <-h.register:
+			if len(h.clients) >= 2 {
+				request.result <- false
+				continue
 			}
 
-		case msg := <-h.broadcast:
-			h.deliver(msg)
+			h.clients[request.client] = true
+			request.result <- true
+
+		case client := <-h.unregister:
+			if h.clients[client] {
+				delete(h.clients, client)
+				close(client.send)
+			}
+
+		case message := <-h.broadcast:
+			for client := range h.clients {
+				if client.username != message.User {
+					client.send <- message
+				}
+			}
 		}
 	}
 }
-func (h *Hub) deliver(msg Message) {
-	payload, err := json.Marshal(msg)
-	if err != nil {
-		log.Printf("failed to marshal message: %v", err)
-		return
+
+func (h *Hub) Register(client *Client) bool {
+	result := make(chan bool)
+
+	h.register <- RegisterRequest{
+		client: client,
+		result: result,
 	}
 
-	for username, client := range h.clients {
-		if username == msg.From {
-			continue
-		}
-		select {
-		case client.Send <- payload:
-		default:
-			close(client.Send)
-			delete(h.clients, username)
-		}
-	}
+	return <-result
 }
-func (h *Hub) notifySystem(text string) {
-	msg := Message{
-		From:      "system",
-		Content:   text,
-		Timestamp: time.Now().Unix(),
-		Type:      "system",
-	}
-	payload, err := json.Marshal(msg)
-	if err != nil {
-		return
-	}
-	for username, client := range h.clients {
-		select {
-		case client.Send <- payload:
-		default:
-			close(client.Send)
-			delete(h.clients, username)
-		}
-	}
-}
-func (h *Hub) Register(c *Client) {
-	h.register <- c
-}
-func (h *Hub) Unregister(c *Client) {
-	h.unregister <- c
-}
-func (h *Hub) Broadcast(msg Message) {
-	h.broadcast <- msg
-}
-func (h *Hub) IsFull() bool {
-	return len(h.clients) >= 2
-}
-func (h *Hub) IsUsernameTaken(username string) bool {
-	_, ok := h.clients[username]
-	return ok
+
+func (h *Hub) Unregister(client *Client) {
+	h.unregister <- client
 }
