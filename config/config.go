@@ -1,7 +1,6 @@
 package config
 
 import (
-	"log"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -15,21 +14,22 @@ type Config struct {
 }
 
 func Load() *Config {
-	if err := godotenv.Load(); err != nil {
-		log.Println("no .env file found, relying on system environment variables")
-	}
-	cfg := &Config{
+	godotenv.Load()
+
+	return &Config{
 		Port:            getEnv("PORT", "8080"),
 		UserA:           getEnv("USER_A", "alice"),
 		UserB:           getEnv("USER_B", "bob"),
-		AllowAllOrigins: getEnv("ALLOW_ALL_ORIGINS", "false") == "true",
+		AllowAllOrigins: getEnv("ALLOW_ALL_ORIGINS", "true") == "true",
 	}
-	return cfg
 }
 
 func getEnv(key, fallback string) string {
-	if v, ok := os.LookupEnv(key); ok && v != "" {
-		return v
+	value := os.Getenv(key)
+
+	if value == "" {
+		return fallback
 	}
-	return fallback
+
+	return value
 }
