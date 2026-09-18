@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat App</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+        }
+
+        #chat {
+            border: 1px solid #ccc;
+            height: 400px;
+            padding: 15px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+
+        input {
+            width: 75%;
+            padding: 10px;
+        }
+
+        button {
+            padding: 10px 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h2>Chat App</h2>
+
+<div id="chat"></div>
+
+<input id="message" placeholder="Enter message">
+<button onclick="sendMessage()">Send</button>
+
+<script>
+const username = new URLSearchParams(window.location.search).get("user");
+
+if (!username) {
+    alert("Use ?user=alice or ?user=bob");
+}
+
+const socket = new WebSocket(
+    "ws://localhost:8080/ws?user=" + username
+);
+
+socket.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+
+    const message = document.createElement("p");
+
+    message.innerHTML =
+        "<b>" + data.user + ":</b> " + data.message;
+
+    document.getElementById("chat").appendChild(message);
+};
+
+function sendMessage() {
+    const input = document.getElementById("message");
+
+    if (input.value.trim() === "") {
+        return;
+    }
+
+    socket.send(JSON.stringify({
+        message: input.value
+    }));
+
+    const message = document.createElement("p");
+
+    message.innerHTML =
+        "<b>You:</b> " + input.value;
+
+    document.getElementById("chat").appendChild(message);
+
+    input.value = "";
+}
+</script>
+
+</body>
+</html>
