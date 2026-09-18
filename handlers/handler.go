@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"log"
+	"net/http"
+
 	"chatapp/config"
 	"chatapp/ws"
 
@@ -23,22 +26,6 @@ func HandleWebSocket(c *gin.Context, hub *ws.Hub, cfg *config.Config) {
 		return
 	}
 
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-	if err != nil {
-		return
-	}
-
-	client := ws.NewClient(hub, conn, username)
-
-	if !hub.Register(client) {
-		conn.WriteMessage(
-			websocket.TextMessage,
-			[]byte(`{"user":"system","message":"Chat is full"}`),
-		)
-		conn.Close()
-		return
-	}
-
-	go client.ReadPump()
-	go client.WritePump()
+func HealthCheck(c *gin.Context) {
+	c.String(200, "ok")
 }
