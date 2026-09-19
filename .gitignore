@@ -1,5 +1,6 @@
 .env
-*.log
-bin/
-tmp/
+*.exe
+/bin/
+/server
+.idea/
 .vscode/
