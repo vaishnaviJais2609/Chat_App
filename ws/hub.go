@@ -1,5 +1,7 @@
 package ws
 
+const maxClients = 2
+
 type Message struct {
 	User    string `json:"user"`
 	Message string `json:"message"`
@@ -25,12 +27,11 @@ func NewHub() *Hub {
 		broadcast:  make(chan Message),
 	}
 }
-
 func (h *Hub) Run() {
 	for {
 		select {
 		case request := <-h.register:
-			if len(h.clients) >= 2 {
+			if len(h.clients) >= maxClients || h.usernameTaken(request.client.username) {
 				request.result <- false
 				continue
 			}
@@ -39,23 +40,39 @@ func (h *Hub) Run() {
 			request.result <- true
 
 		case client := <-h.unregister:
-			if h.clients[client] {
-				delete(h.clients, client)
-				close(client.send)
-			}
+			h.removeClient(client)
 
 		case message := <-h.broadcast:
 			for client := range h.clients {
-				if client.username != message.User {
-					client.send <- message
+				if client.username == message.User {
+					continue
+				}
+				select {
+				case client.send <- message:
+				default:
+					h.removeClient(client)
 				}
 			}
 		}
 	}
 }
+func (h *Hub) removeClient(client *Client) {
+	if h.clients[client] {
+		delete(h.clients, client)
+		close(client.send)
+	}
+}
+func (h *Hub) usernameTaken(username string) bool {
+	for client := range h.clients {
+		if client.username == username {
+			return true
+		}
+	}
 
+	return false
+}
 func (h *Hub) Register(client *Client) bool {
-	result := make(chan bool)
+	result := make(chan bool, 1)
 
 	h.register <- RegisterRequest{
 		client: client,

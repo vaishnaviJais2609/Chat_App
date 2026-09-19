@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -14,14 +15,22 @@ type Config struct {
 }
 
 func Load() *Config {
-	godotenv.Load()
+	if err := godotenv.Load(); err != nil {
+		log.Println("no .env file found, using environment variables and defaults")
+	}
 
-	return &Config{
+	cfg := &Config{
 		Port:            getEnv("PORT", "8080"),
 		UserA:           getEnv("USER_A", "alice"),
 		UserB:           getEnv("USER_B", "bob"),
-		AllowAllOrigins: getEnv("ALLOW_ALL_ORIGINS", "true") == "true",
+		AllowAllOrigins: getEnv("ALLOW_ALL_ORIGINS", "false") == "true",
 	}
+
+	if cfg.UserA == cfg.UserB {
+		log.Fatal("USER_A and USER_B must be different")
+	}
+
+	return cfg
 }
 
 func getEnv(key, fallback string) string {
