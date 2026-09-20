@@ -129,6 +129,12 @@ function connect() {
             return;
         }
 
+        // Check if server sent an error message (e.g., "Chat is full")
+        if (data.error) {
+            addSystemMessage(data.error);
+            return;
+        }
+
         addMessage(String(data.user), String(data.message));
     };
 
@@ -136,10 +142,13 @@ function connect() {
         setConnected(false);
         statusEl.textContent = "Disconnected";
 
-        addSystemMessage(
-            event.reason ||
-            "Connection closed. The server is unavailable or chat is full."
-        );
+        if (event.reason) {
+            addSystemMessage("Disconnected: " + event.reason);
+        } else if (event.code === 1008) {
+            addSystemMessage("Chat is full. Maximum 2 users allowed.");
+        } else {
+            addSystemMessage("Connection closed. The server may be unavailable.");
+        }
     };
 
     socket.onerror = function() {

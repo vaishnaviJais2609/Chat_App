@@ -1,5 +1,10 @@
 package ws
 
+import (
+	"log"
+	"sync"
+)
+
 const maxClients = 2
 
 type Message struct {
@@ -17,6 +22,8 @@ type Hub struct {
 	register   chan RegisterRequest
 	unregister chan *Client
 	broadcast  chan BroadcastMessage
+	mu         sync.RWMutex
+	count      int
 }
 
 type RegisterRequest struct {
@@ -32,16 +39,22 @@ func NewHub() *Hub {
 		broadcast:  make(chan BroadcastMessage),
 	}
 }
+
 func (h *Hub) Run() {
 	for {
 		select {
 		case request := <-h.register:
 			if len(h.clients) >= maxClients {
+				log.Printf("registration rejected: %d/%d clients connected", len(h.clients), maxClients)
 				request.result <- false
 				continue
 			}
 
 			h.clients[request.client] = true
+			h.mu.Lock()
+			h.count = len(h.clients)
+			h.mu.Unlock()
+			log.Printf("client registered: %d/%d clients connected", len(h.clients), maxClients)
 			request.result <- true
 
 		case client := <-h.unregister:
@@ -61,12 +74,18 @@ func (h *Hub) Run() {
 		}
 	}
 }
+
 func (h *Hub) removeClient(client *Client) {
 	if h.clients[client] {
 		delete(h.clients, client)
 		close(client.send)
+		h.mu.Lock()
+		h.count = len(h.clients)
+		h.mu.Unlock()
+		log.Printf("client unregistered: %d/%d clients connected", len(h.clients), maxClients)
 	}
 }
+
 func (h *Hub) Register(client *Client) bool {
 	result := make(chan bool, 1)
 
@@ -80,4 +99,10 @@ func (h *Hub) Register(client *Client) bool {
 
 func (h *Hub) Unregister(client *Client) {
 	h.unregister <- client
+}
+
+func (h *Hub) ClientCount() int {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.count
 }

@@ -32,6 +32,10 @@ func HandleWebSocket(c *gin.Context, hub *ws.Hub, cfg *config.Config) {
 	client := ws.NewClient(hub, conn)
 
 	if !hub.Register(client) {
+		log.Println("registration rejected: chat is full")
+		// Send a JSON message the client can parse before closing
+		errMsg := map[string]string{"error": "Chat is full. Maximum 2 users allowed."}
+		conn.WriteJSON(errMsg)
 		conn.WriteMessage(
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(
@@ -43,6 +47,7 @@ func HandleWebSocket(c *gin.Context, hub *ws.Hub, cfg *config.Config) {
 		return
 	}
 
+	log.Printf("client registered, total clients: %d", hub.ClientCount())
 	go client.WritePump()
 	client.ReadPump()
 }

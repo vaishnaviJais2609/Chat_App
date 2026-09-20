@@ -19,7 +19,7 @@ func Load() *Config {
 
 	cfg := &Config{
 		Port:            getEnv("PORT", "8080"),
-		AllowAllOrigins: getEnv("ALLOW_ALL_ORIGINS", "false") == "true",
+		AllowAllOrigins: getEnv("ALLOW_ALL_ORIGINS", "true") == "true",
 	}
 
 	return cfg
