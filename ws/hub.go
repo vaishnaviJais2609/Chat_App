@@ -7,11 +7,16 @@ type Message struct {
 	Message string `json:"message"`
 }
 
+type BroadcastMessage struct {
+	Sender  *Client
+	Message Message
+}
+
 type Hub struct {
 	clients    map[*Client]bool
 	register   chan RegisterRequest
 	unregister chan *Client
-	broadcast  chan Message
+	broadcast  chan BroadcastMessage
 }
 
 type RegisterRequest struct {
@@ -24,14 +29,14 @@ func NewHub() *Hub {
 		clients:    make(map[*Client]bool),
 		register:   make(chan RegisterRequest),
 		unregister: make(chan *Client),
-		broadcast:  make(chan Message),
+		broadcast:  make(chan BroadcastMessage),
 	}
 }
 func (h *Hub) Run() {
 	for {
 		select {
 		case request := <-h.register:
-			if len(h.clients) >= maxClients || h.usernameTaken(request.client.username) {
+			if len(h.clients) >= maxClients {
 				request.result <- false
 				continue
 			}
@@ -44,11 +49,11 @@ func (h *Hub) Run() {
 
 		case message := <-h.broadcast:
 			for client := range h.clients {
-				if client.username == message.User {
+				if client == message.Sender {
 					continue
 				}
 				select {
-				case client.send <- message:
+				case client.send <- message.Message:
 				default:
 					h.removeClient(client)
 				}
@@ -61,15 +66,6 @@ func (h *Hub) removeClient(client *Client) {
 		delete(h.clients, client)
 		close(client.send)
 	}
-}
-func (h *Hub) usernameTaken(username string) bool {
-	for client := range h.clients {
-		if client.username == username {
-			return true
-		}
-	}
-
-	return false
 }
 func (h *Hub) Register(client *Client) bool {
 	result := make(chan bool, 1)

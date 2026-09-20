@@ -16,18 +16,16 @@ const (
 )
 
 type Client struct {
-	hub      *Hub
-	conn     *websocket.Conn
-	username string
-	send     chan Message
+	hub  *Hub
+	conn *websocket.Conn
+	send chan Message
 }
 
-func NewClient(hub *Hub, conn *websocket.Conn, username string) *Client {
+func NewClient(hub *Hub, conn *websocket.Conn) *Client {
 	return &Client{
-		hub:      hub,
-		conn:     conn,
-		username: username,
-		send:     make(chan Message, 16),
+		hub:  hub,
+		conn: conn,
+		send: make(chan Message, 16),
 	}
 }
 func (c *Client) ReadPump() {
@@ -56,12 +54,15 @@ func (c *Client) ReadPump() {
 		}
 
 		message.Message = strings.TrimSpace(message.Message)
-		if message.Message == "" {
+		message.User = strings.TrimSpace(message.User)
+		if message.Message == "" || message.User == "" {
 			continue
 		}
-		message.User = c.username
 
-		c.hub.broadcast <- message
+		c.hub.broadcast <- BroadcastMessage{
+			Sender:  c,
+			Message: message,
+		}
 	}
 }
 func (c *Client) WritePump() {

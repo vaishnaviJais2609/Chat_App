@@ -12,19 +12,10 @@ import (
 )
 
 func HandleWebSocket(c *gin.Context, hub *ws.Hub, cfg *config.Config) {
-	username := c.Query("user")
-
-	if username == "" {
-		c.String(http.StatusBadRequest, "Username is required")
-		return
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
 	}
-
-	if username != cfg.UserA && username != cfg.UserB {
-		c.String(http.StatusForbidden, "Unknown user")
-		return
-	}
-
-	upgrader := websocket.Upgrader{}
 
 	if cfg.AllowAllOrigins {
 		upgrader.CheckOrigin = func(r *http.Request) bool {
@@ -38,14 +29,14 @@ func HandleWebSocket(c *gin.Context, hub *ws.Hub, cfg *config.Config) {
 		return
 	}
 
-	client := ws.NewClient(hub, conn, username)
+	client := ws.NewClient(hub, conn)
 
 	if !hub.Register(client) {
 		conn.WriteMessage(
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(
 				websocket.ClosePolicyViolation,
-				"Chat is full or this user is already connected",
+				"Chat is full",
 			),
 		)
 		conn.Close()

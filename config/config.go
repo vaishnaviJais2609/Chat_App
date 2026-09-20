@@ -9,8 +9,6 @@ import (
 
 type Config struct {
 	Port            string
-	UserA           string
-	UserB           string
 	AllowAllOrigins bool
 }
 
@@ -21,13 +19,7 @@ func Load() *Config {
 
 	cfg := &Config{
 		Port:            getEnv("PORT", "8080"),
-		UserA:           getEnv("USER_A", "alice"),
-		UserB:           getEnv("USER_B", "bob"),
 		AllowAllOrigins: getEnv("ALLOW_ALL_ORIGINS", "false") == "true",
-	}
-
-	if cfg.UserA == cfg.UserB {
-		log.Fatal("USER_A and USER_B must be different")
 	}
 
 	return cfg

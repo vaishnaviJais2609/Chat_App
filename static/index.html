@@ -63,7 +63,13 @@ const input = document.getElementById("message");
 const sendButton = document.getElementById("send");
 const statusEl = document.getElementById("status");
 
-const username = (new URLSearchParams(window.location.search).get("user") || "").trim();
+let username = "";
+while (!username) {
+    username = prompt("Enter your username:");
+    if (username) {
+        username = username.trim();
+    }
+}
 
 function scrollToBottom() {
     chat.scrollTop = chat.scrollHeight;
@@ -105,7 +111,7 @@ let socket = null;
 
 function connect() {
     const protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
-    const url = protocol + window.location.host + "/ws?user=" + encodeURIComponent(username);
+    const url = protocol + window.location.host + "/ws";
 
     socket = new WebSocket(url);
 
@@ -132,7 +138,7 @@ function connect() {
 
         addSystemMessage(
             event.reason ||
-            "Connection closed. The username may be unknown, or the server is unavailable."
+            "Connection closed. The server is unavailable or chat is full."
         );
     };
 
@@ -153,7 +159,7 @@ function sendMessage() {
         return;
     }
 
-    socket.send(JSON.stringify({ message: text }));
+    socket.send(JSON.stringify({ user: username, message: text }));
 
     // The server does not echo a message back to its sender.
     addMessage("You", text);
@@ -170,12 +176,7 @@ input.addEventListener("keydown", function(event) {
     }
 });
 
-if (!username) {
-    statusEl.textContent = "No user selected";
-    addSystemMessage("Open this page with ?user=alice or ?user=bob");
-} else {
-    connect();
-}
+connect();
 </script>
 
 </body>
