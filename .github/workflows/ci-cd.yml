@@ -94,7 +94,9 @@ jobs:
             sudo docker pull ghcr.io/vaishnavijais2609/chat_app:latest
             sudo docker rm -f chatapp || true
             sudo docker run -d --name chatapp --restart unless-stopped \
-              -p 80:8080 \
-              -e USER_A=alice -e USER_B=bob -e ALLOW_ALL_ORIGINS=false \
+              -p 127.0.0.1:8080:8080 \
+              -e USER_A=alice \
+              -e USER_B=bob \
+              -e ALLOW_ALL_ORIGINS=false \
               ghcr.io/vaishnavijais2609/chat_app:latest
             sudo docker image prune -f
