@@ -5,84 +5,321 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Chat App</title>
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-color: #0f172a;
+            --container-bg: #1e293b;
+            --text-color: #f8fafc;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --bubble-me: #3b82f6;
+            --bubble-other: #334155;
+            --border-color: #334155;
+            --system-msg: #94a3b8;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 50px auto;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
 
-        #status {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 8px;
+        .container {
+            background-color: var(--container-bg);
+            width: 100%;
+            max-width: 800px;
+            height: 90vh;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
         }
 
-        #chat {
-            border: 1px solid #ccc;
-            height: 400px;
-            padding: 15px;
-            overflow-y: auto;
-            margin-bottom: 10px;
-        }
-
-        #chat p {
-            margin: 0 0 8px;
-            overflow-wrap: anywhere;
-        }
-
-        #chat p.system {
-            color: #888;
-            font-style: italic;
-        }
-
-        input {
-            width: 75%;
-            padding: 10px;
-        }
-
-        button {
-            padding: 10px 15px;
-        }
 
         #login-screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            padding: 40px;
             text-align: center;
-            margin-top: 80px;
+        }
+
+        #login-screen h2 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        #login-screen p {
+            color: var(--system-msg);
+            margin-bottom: 30px;
         }
 
         #login-screen input {
-            width: 60%;
-            padding: 10px;
-            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            width: 100%;
+            max-width: 300px;
+            margin-bottom: 20px;
+            outline: none;
+            transition: border-color 0.3s;
         }
+
+        #login-screen input:focus {
+            border-color: var(--accent-color);
+        }
+
+        #login-screen button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        #login-screen button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        #login-screen button:active {
+            transform: scale(0.98);
+        }
+
 
         #chat-screen {
             display: none;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chat-header {
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h2 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        #status {
+            font-size: 0.9rem;
+            color: var(--system-msg);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #ef4444;
+        }
+
+        .status-dot.connected {
+            background-color: #22c55e;
+        }
+
+        #chat {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            display: flex;
+            flex-direction: column;
+            max-width: 75%;
+        }
+
+        .message.me {
+            align-self: flex-end;
+        }
+
+        .message.other {
+            align-self: flex-start;
+        }
+
+        .message .sender {
+            font-size: 0.8rem;
+            color: var(--system-msg);
+            margin-bottom: 4px;
+            margin-left: 4px;
+        }
+
+        .message.me .sender {
+            text-align: right;
+            margin-right: 4px;
+        }
+
+        .message .text {
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .message.me .text {
+            background-color: var(--bubble-me);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.other .text {
+            background-color: var(--bubble-other);
+            color: white;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.system {
+            align-self: center;
+            max-width: 90%;
+            background: none;
+        }
+
+        .message.system .text {
+            color: var(--system-msg);
+            font-style: italic;
+            font-size: 0.85rem;
+            text-align: center;
+            background: none;
+            padding: 4px;
+        }
+
+        .chat-input-area {
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input-area input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input-area input:focus {
+            border-color: var(--accent-color);
+        }
+
+        .chat-input-area input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .chat-input-area button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .chat-input-area button:hover:not(:disabled) {
+            background-color: var(--accent-hover);
+        }
+
+        .chat-input-area button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: var(--border-color);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                height: 100vh;
+                border-radius: 0;
+            }
         }
     </style>
 </head>
 
 <body>
 
-    <!-- Login Screen -->
-    <div id="login-screen">
-        <h2>Chat App</h2>
-        <p>Enter your username to join the chat</p>
-        <div>
+    <div class="container">
+
+        <div id="login-screen">
+            <h2>Chat App</h2>
+            <p>Enter your username to join the conversation</p>
             <input id="username-input" placeholder="Your username" autocomplete="off" autofocus>
+            <button id="join-btn">Join Chat</button>
         </div>
-        <button id="join-btn">Join Chat</button>
-    </div>
 
-    <!-- Chat Screen (hidden until login) -->
-    <div id="chat-screen">
-        <h2>Chat App</h2>
-        <div id="status">Connecting...</div>
-        <div id="chat"></div>
 
-        <input id="message" placeholder="Enter message" autocomplete="off" disabled>
-        <button id="send" disabled>Send</button>
+        <div id="chat-screen">
+            <div class="chat-header">
+                <h2>Chat App</h2>
+                <div id="status">
+                    <div class="status-dot" id="status-dot"></div>
+                    <span id="status-text">Connecting...</span>
+                </div>
+            </div>
+
+            <div id="chat"></div>
+
+            <div class="chat-input-area">
+                <input id="message" placeholder="Type a message..." autocomplete="off" disabled>
+                <button id="send" disabled>Send</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -94,12 +331,13 @@
         const chat = document.getElementById("chat");
         const input = document.getElementById("message");
         const sendButton = document.getElementById("send");
-        const statusEl = document.getElementById("status");
+        const statusText = document.getElementById("status-text");
+        const statusDot = document.getElementById("status-dot");
 
         let username = "";
         let socket = null;
 
-        // --- Login ---
+
         function joinChat() {
             const name = usernameInput.value.trim();
             if (!name) {
@@ -109,7 +347,7 @@
 
             username = name;
             loginScreen.style.display = "none";
-            chatScreen.style.display = "block";
+            chatScreen.style.display = "flex";
             connect();
         }
 
@@ -122,31 +360,40 @@
             }
         });
 
-        // --- Chat functions ---
+
         function scrollToBottom() {
             chat.scrollTop = chat.scrollHeight;
         }
 
-        // textContent / createTextNode only: never insert user text as HTML.
+        function createMessageElement(name, text, type) {
+            const msgDiv = document.createElement("div");
+            msgDiv.className = `message ${type}`;
+
+            if (type !== 'system') {
+                const senderDiv = document.createElement("div");
+                senderDiv.className = "sender";
+                senderDiv.textContent = name;
+                msgDiv.appendChild(senderDiv);
+            }
+
+            const textDiv = document.createElement("div");
+            textDiv.className = "text";
+            textDiv.textContent = text;
+            msgDiv.appendChild(textDiv);
+
+            return msgDiv;
+        }
+
         function addMessage(name, text) {
-            const p = document.createElement("p");
-            const b = document.createElement("b");
-
-            b.textContent = name + ": ";
-            p.appendChild(b);
-            p.appendChild(document.createTextNode(text));
-
-            chat.appendChild(p);
+            const type = (name === "You") ? "me" : "other";
+            const msgEl = createMessageElement(name, text, type);
+            chat.appendChild(msgEl);
             scrollToBottom();
         }
 
         function addSystemMessage(text) {
-            const p = document.createElement("p");
-
-            p.className = "system";
-            p.textContent = text;
-
-            chat.appendChild(p);
+            const msgEl = createMessageElement("System", text, "system");
+            chat.appendChild(msgEl);
             scrollToBottom();
         }
 
@@ -155,11 +402,14 @@
             sendButton.disabled = !connected;
 
             if (connected) {
+                statusDot.classList.add("connected");
                 input.focus();
+            } else {
+                statusDot.classList.remove("connected");
             }
         }
 
-        // --- WebSocket ---
+
         function connect() {
             const protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
             const url = protocol + window.location.host + "/ws";
@@ -167,20 +417,18 @@
             socket = new WebSocket(url);
 
             socket.onopen = function () {
-                statusEl.textContent = "Connected as " + username;
+                statusText.textContent = "Connected as " + username;
                 setConnected(true);
             };
 
             socket.onmessage = function (event) {
                 let data;
-
                 try {
                     data = JSON.parse(event.data);
                 } catch (e) {
                     return;
                 }
 
-                // Check if server sent an error message (e.g., "Chat is full")
                 if (data.error) {
                     addSystemMessage(data.error);
                     return;
@@ -191,7 +439,7 @@
 
             socket.onclose = function (event) {
                 setConnected(false);
-                statusEl.textContent = "Disconnected";
+                statusText.textContent = "Disconnected";
 
                 if (event.reason) {
                     addSystemMessage("Disconnected: " + event.reason);
@@ -203,7 +451,8 @@
             };
 
             socket.onerror = function () {
-                statusEl.textContent = "Connection error";
+                statusText.textContent = "Connection error";
+                setConnected(false);
             };
         }
 
@@ -220,10 +469,7 @@
             }
 
             socket.send(JSON.stringify({ user: username, message: text }));
-
-            // The server does not echo a message back to its sender.
             addMessage("You", text);
-
             input.value = "";
         }
 
@@ -236,7 +482,6 @@
             }
         });
     </script>
-
 </body>
 
 </html>
