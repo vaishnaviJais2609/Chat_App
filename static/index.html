@@ -196,7 +196,7 @@
                 if (event.reason) {
                     addSystemMessage("Disconnected: " + event.reason);
                 } else if (event.code === 1008) {
-                    addSystemMessage("Chat is full. Maximum 2 users allowed.");
+                    addSystemMessage("Chat is full.");
                 } else {
                     addSystemMessage("Connection closed. The server may be unavailable.");
                 }

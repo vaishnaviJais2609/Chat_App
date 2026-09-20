@@ -34,7 +34,7 @@ func HandleWebSocket(c *gin.Context, hub *ws.Hub, cfg *config.Config) {
 	if !hub.Register(client) {
 		log.Println("registration rejected: chat is full")
 		// Send a JSON message the client can parse before closing
-		errMsg := map[string]string{"error": "Chat is full. Maximum 2 users allowed."}
+		errMsg := map[string]string{"error": "Chat is full."}
 		conn.WriteJSON(errMsg)
 		conn.WriteMessage(
 			websocket.CloseMessage,

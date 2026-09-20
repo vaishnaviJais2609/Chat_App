@@ -5,8 +5,6 @@ import (
 	"sync"
 )
 
-const maxClients = 2
-
 type Message struct {
 	User    string `json:"user"`
 	Message string `json:"message"`
@@ -44,17 +42,11 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case request := <-h.register:
-			if len(h.clients) >= maxClients {
-				log.Printf("registration rejected: %d/%d clients connected", len(h.clients), maxClients)
-				request.result <- false
-				continue
-			}
-
 			h.clients[request.client] = true
 			h.mu.Lock()
 			h.count = len(h.clients)
 			h.mu.Unlock()
-			log.Printf("client registered: %d/%d clients connected", len(h.clients), maxClients)
+			log.Printf("client registered: %d clients connected", len(h.clients))
 			request.result <- true
 
 		case client := <-h.unregister:
@@ -82,7 +74,7 @@ func (h *Hub) removeClient(client *Client) {
 		h.mu.Lock()
 		h.count = len(h.clients)
 		h.mu.Unlock()
-		log.Printf("client unregistered: %d/%d clients connected", len(h.clients), maxClients)
+		log.Printf("client unregistered: %d clients connected", len(h.clients))
 	}
 }
 
