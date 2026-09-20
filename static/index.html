@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -44,149 +45,198 @@
         button {
             padding: 10px 15px;
         }
+
+        #login-screen {
+            text-align: center;
+            margin-top: 80px;
+        }
+
+        #login-screen input {
+            width: 60%;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        #chat-screen {
+            display: none;
+        }
     </style>
 </head>
 
 <body>
 
-<h2>Chat App</h2>
+    <!-- Login Screen -->
+    <div id="login-screen">
+        <h2>Chat App</h2>
+        <p>Enter your username to join the chat</p>
+        <div>
+            <input id="username-input" placeholder="Your username" autocomplete="off" autofocus>
+        </div>
+        <button id="join-btn">Join Chat</button>
+    </div>
 
-<div id="status">Connecting...</div>
-<div id="chat"></div>
+    <!-- Chat Screen (hidden until login) -->
+    <div id="chat-screen">
+        <h2>Chat App</h2>
+        <div id="status">Connecting...</div>
+        <div id="chat"></div>
 
-<input id="message" placeholder="Enter message" autocomplete="off" disabled>
-<button id="send" disabled>Send</button>
+        <input id="message" placeholder="Enter message" autocomplete="off" disabled>
+        <button id="send" disabled>Send</button>
+    </div>
 
-<script>
-const chat = document.getElementById("chat");
-const input = document.getElementById("message");
-const sendButton = document.getElementById("send");
-const statusEl = document.getElementById("status");
+    <script>
+        const loginScreen = document.getElementById("login-screen");
+        const chatScreen = document.getElementById("chat-screen");
+        const usernameInput = document.getElementById("username-input");
+        const joinBtn = document.getElementById("join-btn");
 
-let username = "";
-while (!username) {
-    username = prompt("Enter your username:");
-    if (username) {
-        username = username.trim();
-    }
-}
+        const chat = document.getElementById("chat");
+        const input = document.getElementById("message");
+        const sendButton = document.getElementById("send");
+        const statusEl = document.getElementById("status");
 
-function scrollToBottom() {
-    chat.scrollTop = chat.scrollHeight;
-}
+        let username = "";
+        let socket = null;
 
-// textContent / createTextNode only: never insert user text as HTML.
-function addMessage(name, text) {
-    const p = document.createElement("p");
-    const b = document.createElement("b");
+        // --- Login ---
+        function joinChat() {
+            const name = usernameInput.value.trim();
+            if (!name) {
+                usernameInput.focus();
+                return;
+            }
 
-    b.textContent = name + ": ";
-    p.appendChild(b);
-    p.appendChild(document.createTextNode(text));
-
-    chat.appendChild(p);
-    scrollToBottom();
-}
-
-function addSystemMessage(text) {
-    const p = document.createElement("p");
-
-    p.className = "system";
-    p.textContent = text;
-
-    chat.appendChild(p);
-    scrollToBottom();
-}
-
-function setConnected(connected) {
-    input.disabled = !connected;
-    sendButton.disabled = !connected;
-
-    if (connected) {
-        input.focus();
-    }
-}
-
-let socket = null;
-
-function connect() {
-    const protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
-    const url = protocol + window.location.host + "/ws";
-
-    socket = new WebSocket(url);
-
-    socket.onopen = function() {
-        statusEl.textContent = "Connected as " + username;
-        setConnected(true);
-    };
-
-    socket.onmessage = function(event) {
-        let data;
-
-        try {
-            data = JSON.parse(event.data);
-        } catch (e) {
-            return;
+            username = name;
+            loginScreen.style.display = "none";
+            chatScreen.style.display = "block";
+            connect();
         }
 
-        // Check if server sent an error message (e.g., "Chat is full")
-        if (data.error) {
-            addSystemMessage(data.error);
-            return;
+        joinBtn.addEventListener("click", joinChat);
+
+        usernameInput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                joinChat();
+            }
+        });
+
+        // --- Chat functions ---
+        function scrollToBottom() {
+            chat.scrollTop = chat.scrollHeight;
         }
 
-        addMessage(String(data.user), String(data.message));
-    };
+        // textContent / createTextNode only: never insert user text as HTML.
+        function addMessage(name, text) {
+            const p = document.createElement("p");
+            const b = document.createElement("b");
 
-    socket.onclose = function(event) {
-        setConnected(false);
-        statusEl.textContent = "Disconnected";
+            b.textContent = name + ": ";
+            p.appendChild(b);
+            p.appendChild(document.createTextNode(text));
 
-        if (event.reason) {
-            addSystemMessage("Disconnected: " + event.reason);
-        } else if (event.code === 1008) {
-            addSystemMessage("Chat is full. Maximum 2 users allowed.");
-        } else {
-            addSystemMessage("Connection closed. The server may be unavailable.");
+            chat.appendChild(p);
+            scrollToBottom();
         }
-    };
 
-    socket.onerror = function() {
-        statusEl.textContent = "Connection error";
-    };
-}
+        function addSystemMessage(text) {
+            const p = document.createElement("p");
 
-function sendMessage() {
-    const text = input.value.trim();
+            p.className = "system";
+            p.textContent = text;
 
-    if (text === "") {
-        return;
-    }
+            chat.appendChild(p);
+            scrollToBottom();
+        }
 
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-        addSystemMessage("Not connected. Message was not sent.");
-        return;
-    }
+        function setConnected(connected) {
+            input.disabled = !connected;
+            sendButton.disabled = !connected;
 
-    socket.send(JSON.stringify({ user: username, message: text }));
+            if (connected) {
+                input.focus();
+            }
+        }
 
-    // The server does not echo a message back to its sender.
-    addMessage("You", text);
+        // --- WebSocket ---
+        function connect() {
+            const protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+            const url = protocol + window.location.host + "/ws";
 
-    input.value = "";
-}
+            socket = new WebSocket(url);
 
-sendButton.addEventListener("click", sendMessage);
+            socket.onopen = function () {
+                statusEl.textContent = "Connected as " + username;
+                setConnected(true);
+            };
 
-input.addEventListener("keydown", function(event) {
-    if (event.key === "Enter" && !event.isComposing) {
-        event.preventDefault();
-        sendMessage();
-    }
-});
+            socket.onmessage = function (event) {
+                let data;
 
-connect();
-</script>
+                try {
+                    data = JSON.parse(event.data);
+                } catch (e) {
+                    return;
+                }
+
+                // Check if server sent an error message (e.g., "Chat is full")
+                if (data.error) {
+                    addSystemMessage(data.error);
+                    return;
+                }
+
+                addMessage(String(data.user), String(data.message));
+            };
+
+            socket.onclose = function (event) {
+                setConnected(false);
+                statusEl.textContent = "Disconnected";
+
+                if (event.reason) {
+                    addSystemMessage("Disconnected: " + event.reason);
+                } else if (event.code === 1008) {
+                    addSystemMessage("Chat is full. Maximum 2 users allowed.");
+                } else {
+                    addSystemMessage("Connection closed. The server may be unavailable.");
+                }
+            };
+
+            socket.onerror = function () {
+                statusEl.textContent = "Connection error";
+            };
+        }
+
+        function sendMessage() {
+            const text = input.value.trim();
+
+            if (text === "") {
+                return;
+            }
+
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                addSystemMessage("Not connected. Message was not sent.");
+                return;
+            }
+
+            socket.send(JSON.stringify({ user: username, message: text }));
+
+            // The server does not echo a message back to its sender.
+            addMessage("You", text);
+
+            input.value = "";
+        }
+
+        sendButton.addEventListener("click", sendMessage);
+
+        input.addEventListener("keydown", function (event) {
+            if (event.key === "Enter" && !event.isComposing) {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+    </script>
 
 </body>
+
 </html>
